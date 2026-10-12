@@ -102,7 +102,7 @@ func main() {
 		log.Fatal(err)
 	}
 	done := make(chan error, 1)
-	go func() { done <- child.Wait(); stop() }()
+	go func() { done <- child.Wait() }()
 	m := http.NewServeMux()
 	m.HandleFunc("GET /healthz", readiness)
 	m.HandleFunc("/gateway", func(w http.ResponseWriter, r *http.Request) {
@@ -121,17 +121,30 @@ func main() {
 			stop()
 		}
 	}()
-	<-ctx.Done()
+	childExited := false
+	failed := false
+	select {
+	case err := <-done:
+		childExited = true
+		failed = true
+		log.Printf("Magpie exited unexpectedly: %v", err)
+	case <-ctx.Done():
+	}
 	shutdown, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	server.Shutdown(shutdown)
-	child.Process.Signal(syscall.SIGTERM)
-	select {
-	case err := <-done:
-		if err != nil {
-			log.Print(err)
+	if !childExited {
+		child.Process.Signal(syscall.SIGTERM)
+		select {
+		case err := <-done:
+			if err != nil {
+				log.Print(err)
+			}
+		case <-shutdown.Done():
+			child.Process.Kill()
 		}
-	case <-shutdown.Done():
-		child.Process.Kill()
+	}
+	if failed {
+		os.Exit(1)
 	}
 }
