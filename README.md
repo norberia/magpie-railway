@@ -1,5 +1,7 @@
 # Magpie on Railway
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/FehS2N)
+
 Deploy a persistent Magpie AI gateway and browser management UI with one HTTPS domain.
 Upstream: https://github.com/yetone/magpie (MIT). Pinned image: `ghcr.io/yetone/magpie:0.1.1203`.
 
